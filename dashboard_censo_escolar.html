@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Estratégico da Educação</title>
+    <!-- Tailwind CSS para estilização -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js para os gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js Datalabels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- SheetJS (xlsx) para ler e criar arquivos Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Fontes do Google -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ecf0f1; /* Cor de fundo da nova paleta */
+        }
+        .chart-container {
+            position: relative;
+            height: 40vh;
+            width: 100%;
+        }
+        /* Novas cores de texto */
+        .text-main-header { color: #2c3e50; }
+        .text-sub-header, .text-kpi-label { color: #7f8c8d; }
+        .text-kpi-value { color: #2c3e50; }
+
+        /* Novos estilos de botão */
+        .btn {
+            font-weight: bold;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            color: white;
+            transition: background-color 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-primary { background-color: #3498db; }
+        .btn-primary:hover { background-color: #2980b9; }
+        .btn-primary:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+        .btn-danger { background-color: #e74c3c; }
+        .btn-danger:hover { background-color: #c0392b; }
+        .btn-success { background-color: #1abc9c; }
+        .btn-success:hover { background-color: #16a085; }
+        .btn-ai { background-color: #9b59b6; }
+        .btn-ai:hover { background-color: #8e44ad; }
+
+        /* Estilo para o botão de upload customizado */
+        .file-upload-btn {
+            background-color: #ffffff;
+            border: 1px solid #bdc3c7;
+            border-radius: 0.375rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            color: #34495e;
+        }
+        .file-upload-btn:hover {
+            background-color: #f8f9f9;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #bdc3c7; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #95a5a6; }
+        
+        #ai-modal-content h3 {
+            font-size: 1.25rem; /* Aumenta o tamanho do título principal */
+            font-weight: 700;
+            color: #2c3e50;
+            margin-top: 1.25rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 2px solid #3498db;
+        }
+        #ai-modal-content h4 {
+            font-size: 1.1rem; /* Título para subseções como Forças, Fraquezas */
+            font-weight: 600;
+            color: #34495e;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        #ai-modal-content ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+            color: #34495e;
+            margin-bottom: 1rem;
+        }
+        #ai-modal-content p {
+            margin-bottom: 0.75rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6 lg:p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Novo Cabeçalho Centralizado -->
+        <header class="text-center mb-8 py-6 bg-white rounded-lg shadow-md">
+            <!-- Uploader do Brasão -->
+            <div class="mb-4">
+                <input type="file" id="logo-upload" class="hidden" accept="image/*">
+                <label for="logo-upload" class="cursor-pointer">
+                    <img id="logo-img" src="https://placehold.co/200x100/ecf0f1/34495e?text=Carregar+Brasão" alt="Brasão do Município" class="mx-auto h-28 w-auto object-contain hover:opacity-80 transition-opacity">
+                    <p id="logo-text" class="text-xs text-sub-header mt-2">Clique no ícone para carregar o brasão</p>
+                </label>
+            </div>
+            <!-- Textos do Cabeçalho -->
+            <h1 class="text-2xl font-bold text-main-header">PREFEITURA MUNICIPAL DE FEIRA GRANDE - AL</h1>
+            <h2 class="text-xl text-main-header">Secretaria Municipal de Educação - SEMED</h2>
+            <p class="text-md text-sub-header mt-2">Francklin Rafael - Coordenador Censo Escolar Municipal</p>
+        </header>
+        
+        <!-- Visão Geral - Conteúdo Principal -->
+        <div id="main-view">
+            <!-- Seção de Upload de Arquivos -->
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                <h2 class="text-xl font-semibold text-main-header mb-1">Passo 1: Carregar Dados da Rede</h2>
+                <p class="text-sm text-sub-header mb-4">Selecione os 3 relatórios consolidados (Gestão, Transporte e EJA).</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <!-- Upload Gestão -->
+                    <div>
+                        <label class="block text-sm font-medium text-main-header mb-1">Relatório de Gestão</label>
+                        <input type="file" id="gestao-file" accept=".csv, .xlsx" class="hidden" data-target="gestao-feedback">
+                        <label for="gestao-file" class="file-upload-btn w-full text-center">Escolher arquivo...</label>
+                        <p id="gestao-feedback" class="text-xs text-sub-header mt-1 truncate">Nenhum arquivo selecionado.</p>
+                    </div>
+                    <!-- Upload Transporte -->
+                    <div>
+                        <label class="block text-sm font-medium text-main-header mb-1">Relatório de Transporte</label>
+                        <input type="file" id="transporte-file" accept=".csv, .xlsx" class="hidden" data-target="transporte-feedback">
+                        <label for="transporte-file" class="file-upload-btn w-full text-center">Escolher arquivo...</label>
+                        <p id="transporte-feedback" class="text-xs text-sub-header mt-1 truncate">Nenhum arquivo selecionado.</p>
+                    </div>
+                    <!-- Upload EJA -->
+                    <div>
+                        <label class="block text-sm font-medium text-main-header mb-1">Relatório de EJA</label>
+                        <input type="file" id="eja-file" accept=".csv, .xlsx" class="hidden" data-target="eja-feedback">
+                        <label for="eja-file" class="file-upload-btn w-full text-center">Escolher arquivo...</label>
+                        <p id="eja-feedback" class="text-xs text-sub-header mt-1 truncate">Nenhum arquivo selecionado.</p>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <button id="update-dashboard-btn" disabled class="btn btn-primary">
+                        Atualizar Dashboard
+                    </button>
+                    <button id="clear-btn" class="btn btn-danger ml-2">
+                        Limpar
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Conteúdo do Dashboard (inicialmente oculto) -->
+            <div id="dashboard-content" class="hidden">
+                <!-- Filtros e Análise IA -->
+                <div class="bg-white p-4 rounded-lg shadow-md mb-6">
+                    <div class="flex flex-col md:flex-row gap-4 items-center">
+                        <div class="w-full md:w-1/3">
+                            <label for="school-filter" class="block text-sm font-medium text-main-header mb-1">Filtrar por Escola:</label>
+                            <select id="school-filter" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="all">Todas as Escolas</option>
+                            </select>
+                        </div>
+                        <div class="w-full md:w-1/3">
+                            <label for="location-filter" class="block text-sm font-medium text-main-header mb-1">Filtrar por Zona:</label>
+                            <select id="location-filter" class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="all">Urbana e Rural</option>
+                                <option value="urbana">Urbana</option>
+                                <option value="rural">Rural</option>
+                            </select>
+                        </div>
+                        <div class="w-full md:w-1/3 md:self-end">
+                            <button id="generate-ai-analysis-btn" class="btn btn-ai w-full">
+                                ✨ Gerar Análise dos Dados
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Indicadores (KPIs) -->
+                <div id="kpi-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-6"></div>
+
+                <!-- Seção de Gráficos -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md"><h2 class="text-xl font-semibold text-main-header mb-4">Matrículas por Etapa de Ensino</h2><div class="chart-container"><canvas id="enrollmentByLevelChart"></canvas></div></div>
+                    <div class="bg-white p-6 rounded-lg shadow-md"><h2 class="text-xl font-semibold text-main-header mb-4">Distribuição de Alunos por Zona</h2><div class="chart-container"><canvas id="studentsByLocationChart"></canvas></div></div>
+                    <div class="bg-white p-6 rounded-lg shadow-md"><h2 class="text-xl font-semibold text-main-header mb-4">Uso de Transporte Escolar</h2><div class="chart-container"><canvas id="transportUsageChart"></canvas></div></div>
+                    <div class="bg-white p-6 rounded-lg shadow-md"><h2 class="text-xl font-semibold text-main-header mb-4">Matrículas por Turno (Infantil/Fundamental)</h2><div class="chart-container"><canvas id="enrollmentByTimeChart"></canvas></div></div>
+                </div>
+                
+                <!-- Novo Gráfico de Matrículas por Escola -->
+                <div class="mt-6 bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold text-main-header mb-4">Total de Matrículas por Escola</h2>
+                    <div class="chart-container" style="height: 80vh;">
+                        <canvas id="enrollmentBySchoolChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tabela de Detalhes -->
+                <div class="mt-8 bg-white p-6 rounded-lg shadow-md overflow-x-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-main-header">Detalhes por Escola</h2>
+                        <button id="export-excel-btn" class="btn btn-success">
+                            Exportar para Excel
+                        </button>
+                    </div>
+                    <div class="max-h-96 overflow-y-auto">
+                        <table class="min-w-full divide-y divide-slate-200"><thead class="bg-slate-50 sticky top-0"><tr><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-sub-header uppercase tracking-wider">Escola</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-sub-header uppercase tracking-wider">Zona</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-sub-header uppercase tracking-wider">Total de Alunos</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-sub-header uppercase tracking-wider">Alunos (Transporte)</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-sub-header uppercase tracking-wider">Matrículas (EJA)</th></tr></thead><tbody id="school-details-table" class="bg-white divide-y divide-slate-200"></tbody></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI Analysis Modal -->
+    <div id="ai-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h2 class="text-xl font-bold text-main-header">✨ Análise Estratégica (IA)</h2>
+                <button id="close-ai-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                <div id="ai-charts-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <h3 class="text-center font-semibold text-main-header mb-2">Distribuição por Etapa</h3>
+                        <canvas id="ai-stage-chart"></canvas>
+                    </div>
+                    <div>
+                        <h3 class="text-center font-semibold text-main-header mb-2">Distribuição por Zona</h3>
+                        <canvas id="ai-location-chart"></canvas>
+                    </div>
+                </div>
+                <div id="ai-modal-content"></div>
+                 <div id="ai-modal-loader" class="p-6 text-center">
+                    <svg class="animate-spin h-8 w-8 text-purple-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <p class="mt-2 text-sub-header">Analisando dados e gerando insights... Por favor, aguarde.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-75 flex-col items-center justify-center z-50 hidden"><div class="text-center"><svg class="animate-spin h-10 w-10 text-main-header mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p id="loading-text" class="mt-4 text-sub-header text-lg">Analisando dados... Por favor, aguarde.</p></div></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    Chart.register(ChartDataLabels);
+    let consolidatedData = [];
+    let currentFilteredData = [];
+    const chartInstances = {};
+    const uploadedFiles = { gestao: null, transporte: null, eja: null };
+
+    // DOM Elements
+    const gestaoInput = document.getElementById('gestao-file');
+    const transporteInput = document.getElementById('transporte-file');
+    const ejaInput = document.getElementById('eja-file');
+    const updateBtn = document.getElementById('update-dashboard-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const dashboardContent = document.getElementById('dashboard-content');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingText = document.getElementById('loading-text');
+    const aiAnalysisBtn = document.getElementById('generate-ai-analysis-btn');
+    const aiModal = document.getElementById('ai-modal');
+    const closeAiModalBtn = document.getElementById('close-ai-modal-btn');
+    const aiModalContent = document.getElementById('ai-modal-content');
+    const aiModalLoader = document.getElementById('ai-modal-loader');
+    const logoUploadInput = document.getElementById('logo-upload');
+    const logoImg = document.getElementById('logo-img');
+    const logoText = document.getElementById('logo-text');
+
+    // Event Listeners
+    gestaoInput.addEventListener('change', handleFileSelect);
+    transporteInput.addEventListener('change', handleFileSelect);
+    ejaInput.addEventListener('change', handleFileSelect);
+    updateBtn.addEventListener('click', loadData);
+    clearBtn.addEventListener('click', clearDashboard);
+    aiAnalysisBtn.addEventListener('click', generateAIAnalysis);
+    closeAiModalBtn.addEventListener('click', () => aiModal.classList.add('hidden'));
+    logoUploadInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                logoImg.src = e.target.result;
+                logoText.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const fileType = event.target.id.split('-')[0];
+        uploadedFiles[fileType] = file;
+        const feedbackEl = document.getElementById(event.target.dataset.target);
+        feedbackEl.textContent = file.name;
+        feedbackEl.classList.remove('text-sub-header');
+        feedbackEl.classList.add('text-green-600', 'font-medium');
+        checkAllFilesUploaded();
+    }
+
+    function checkAllFilesUploaded() {
+        if (uploadedFiles.gestao && uploadedFiles.transporte && uploadedFiles.eja) {
+            updateBtn.disabled = false;
+        }
+    }
+
+    function clearDashboard() {
+        [gestaoInput, transporteInput, ejaInput].forEach(input => {
+            input.value = '';
+            const feedbackEl = document.getElementById(input.dataset.target);
+            feedbackEl.textContent = 'Nenhum arquivo selecionado.';
+            feedbackEl.classList.add('text-sub-header');
+            feedbackEl.classList.remove('text-green-600', 'font-medium');
+        });
+        uploadedFiles.gestao = null;
+        uploadedFiles.transporte = null;
+        uploadedFiles.eja = null;
+        updateBtn.disabled = true;
+        dashboardContent.classList.add('hidden');
+        Object.values(chartInstances).forEach(chart => chart.destroy());
+        consolidatedData = [];
+        currentFilteredData = [];
+    }
+
+    const extractSchoolCode = (text) => {
+        if (!text) return null;
+        const match = String(text).match(/^(\d+)/);
+        return match ? match[1] : null;
+    };
+    
+    const safeParseInt = (value) => {
+        if (value === null || value === undefined || String(value).trim() === '-') return 0;
+        return parseInt(String(value).trim(), 10) || 0;
+    };
+
+    const parseGestaoFile = (rows) => {
+        rows.slice(2).forEach(cols => {
+            if (cols.length < 20) return;
+            const code = extractSchoolCode(cols[0]);
+            if (!code) return;
+            let school = consolidatedData.find(s => s.code === code);
+            if (!school) {
+                school = { 
+                    code, 
+                    name: String(cols[0]).replace(/^\d+[-]?\s*/, '').trim()
+                        .replace(/ESCOLA MUNICIPAL DE ENSINO FUNDAMENTAL/gi, 'E.M.E.F'),
+                    location: String(cols[2])?.trim().toLowerCase() || 'desconhecida',
+                    creche: 0, preescola: 0,
+                    anosIniciais: 0, anosFinais: 0, infantil: 0, 
+                    fundamental: 0, eja: 0, transporte: 0, 
+                    parcial: 0, integral: 0
+                };
+                consolidatedData.push(school);
+            }
+            const crecheParcial = safeParseInt(cols[4]) + safeParseInt(cols[12]);
+            const crecheIntegral = safeParseInt(cols[5]) + safeParseInt(cols[13]);
+            const preescolaParcial = safeParseInt(cols[6]) + safeParseInt(cols[14]);
+            const preescolaIntegral = safeParseInt(cols[7]) + safeParseInt(cols[15]);
+            const anosIniciaisParcial = safeParseInt(cols[8]) + safeParseInt(cols[16]);
+            const anosIniciaisIntegral = safeParseInt(cols[9]) + safeParseInt(cols[17]);
+            const anosFinaisParcial = safeParseInt(cols[10]) + safeParseInt(cols[18]);
+            const anosFinaisIntegral = safeParseInt(cols[11]) + safeParseInt(cols[19]);
+
+            school.creche += crecheParcial + crecheIntegral;
+            school.preescola += preescolaParcial + preescolaIntegral;
+            school.anosIniciais += anosIniciaisParcial + anosIniciaisIntegral;
+            school.anosFinais += anosFinaisParcial + anosFinaisIntegral;
+            school.infantil += crecheParcial + crecheIntegral + preescolaParcial + preescolaIntegral;
+            school.fundamental += anosIniciaisParcial + anosIniciaisIntegral + anosFinaisParcial + anosFinaisIntegral;
+            school.parcial += crecheParcial + preescolaParcial + anosIniciaisParcial + anosFinaisParcial;
+            school.integral += crecheIntegral + preescolaIntegral + anosIniciaisIntegral + anosFinaisIntegral;
+        });
+    };
+    
+    const parseTransporteFile = (rows) => {
+        rows.slice(1).forEach(cols => {
+            if (cols.length < 7) return;
+            const code = extractSchoolCode(cols[0]);
+            if (!code) return;
+            let school = consolidatedData.find(s => s.code === code);
+            if (school) {
+                school.transporte += safeParseInt(cols[3]) + safeParseInt(cols[4]) + safeParseInt(cols[5]) + safeParseInt(cols[6]);
+            }
+        });
+    };
+
+    const parseEJAFile = (rows) => {
+        // Robust EJA parsing based on headers
+        const headers = rows[1].map(h => String(h || '').trim());
+        
+        const codeHeader = 'Código e Nome da escola';
+        const locationHeader = 'Localização/Zona da escola';
+        const eja1Header = 'Anos iniciais (1º segmento)';
+        const eja2Header = 'Anos finais (2º segmento)';
+
+        const codeColIndex = headers.indexOf(codeHeader);
+        const locationColIndex = headers.indexOf(locationHeader);
+        const eja1ColIndex = headers.indexOf(eja1Header);
+        const eja2ColIndex = headers.indexOf(eja2Header);
+
+        if ([codeColIndex, eja1ColIndex, eja2ColIndex].includes(-1)) {
+            console.error('Cabeçalhos do arquivo EJA não encontrados. Usando método antigo.');
+            // Fallback to old method if headers are not found
+            rows.slice(2).forEach(cols => {
+                let codeColIndex = -1;
+                for (let i = 0; i < cols.length; i++) { if (String(cols[i]).match(/^\d+[-]/)) { codeColIndex = i; break; } }
+                if (codeColIndex === -1 || String(cols[codeColIndex]).toLowerCase().includes('total')) return;
+                const code = extractSchoolCode(cols[codeColIndex]);
+                if (!code) return;
+                const ejaValue = safeParseInt(cols[codeColIndex + 3]) + safeParseInt(cols[codeColIndex + 4]);
+                let school = consolidatedData.find(s => s.code === code);
+                if(school) school.eja += ejaValue;
+            });
+            return;
+        }
+
+        rows.slice(2).forEach(cols => {
+            const codeAndName = cols[codeColIndex];
+            if (!codeAndName || String(codeAndName).toLowerCase().includes('total')) return;
+            
+            const code = extractSchoolCode(codeAndName);
+            if (!code) return;
+
+            let school = consolidatedData.find(s => s.code === code);
+            if (!school) {
+                 school = { 
+                    code, 
+                    name: String(codeAndName).replace(/^\d+[-]?\s*/, '').trim().replace(/ESCOLA MUNICIPAL DE ENSINO FUNDAMENTAL/gi, 'E.M.E.F'),
+                    location: String(cols[locationColIndex])?.trim().toLowerCase() || 'desconhecida',
+                    creche: 0, preescola: 0, anosIniciais: 0, anosFinais: 0, infantil: 0, 
+                    fundamental: 0, eja: 0, transporte: 0, parcial: 0, integral: 0
+                };
+                consolidatedData.push(school);
+            }
+            const ejaValue = safeParseInt(cols[eja1ColIndex]) + safeParseInt(cols[eja2ColIndex]);
+            school.eja += ejaValue;
+        });
+    };
+    
+    function readFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
+                    resolve(json);
+                } catch (err) { reject(err); }
+            };
+            reader.onerror = (error) => reject(error);
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    async function loadData() {
+        loadingOverlay.style.display = 'flex';
+        loadingText.textContent = 'Analisando dados... Por favor, aguarde.';
+        consolidatedData = [];
+        Object.values(chartInstances).forEach(chart => chart.destroy());
+        try {
+            const [gestaoData, transporteData, ejaData] = await Promise.all([
+                readFile(uploadedFiles.gestao),
+                readFile(uploadedFiles.transporte),
+                readFile(uploadedFiles.eja)
+            ]);
+            try { parseGestaoFile(gestaoData); } catch (e) { throw new Error(`Erro ao processar o arquivo de Gestão: ${e.message}`); }
+            try { parseTransporteFile(transporteData); } catch (e) { throw new Error(`Erro ao processar o arquivo de Transporte: ${e.message}`); }
+            try { parseEJAFile(ejaData); } catch (e) { throw new Error(`Erro ao processar o arquivo de EJA: ${e.message}`); }
+            consolidatedData.sort((a, b) => a.name.localeCompare(b.name));
+            populateFilters();
+            setupEventListeners();
+            updateDashboard();
+            dashboardContent.classList.remove('hidden');
+        } catch (error) {
+            console.error("Erro ao carregar ou processar os dados:", error);
+            loadingText.textContent = error.message || 'Erro ao processar os arquivos. Verifique o formato e tente novamente.';
+            setTimeout(() => { loadingOverlay.style.display = 'none'; }, 4000);
+            return;
+        } 
+        loadingOverlay.style.display = 'none';
+    }
+
+    function populateFilters() {
+        const schoolFilter = document.getElementById('school-filter');
+        schoolFilter.innerHTML = '<option value="all">Todas as Escolas</option>';
+        consolidatedData.forEach(school => {
+            const option = document.createElement('option');
+            option.value = school.code;
+            option.textContent = school.name;
+            schoolFilter.appendChild(option);
+        });
+    }
+    
+    function setupEventListeners() {
+        document.getElementById('school-filter').addEventListener('change', updateDashboard);
+        document.getElementById('location-filter').addEventListener('change', updateDashboard);
+        document.getElementById('export-excel-btn').addEventListener('click', exportToExcel);
+    }
+
+    function exportToExcel() {
+        if (currentFilteredData.length === 0) {
+            alert("Não há dados para exportar com os filtros atuais.");
+            return;
+        }
+        const dataToExport = currentFilteredData.map(school => ({
+            'Escola': school.name, 'Código': school.code, 'Zona': school.location,
+            'Total de Alunos': school.infantil + school.fundamental + school.eja, 'Utilizam Transporte': school.transporte,
+            'Matrículas Creche': school.creche, 'Matrículas Pré-Escola': school.preescola,
+            'Matrículas Anos Iniciais': school.anosIniciais, 'Matrículas Anos Finais': school.anosFinais,
+            'Matrículas EJA': school.eja, 'Turno Parcial': school.parcial, 'Turno Integral': school.integral
+        }));
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Dados Censo Escolar");
+        const colWidths = [ { wch: 50 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 } ];
+        worksheet["!cols"] = colWidths;
+        XLSX.writeFile(workbook, "relatorio_censo_escolar.xlsx");
+    }
+    
+    const datalabelsFormatter = (value, context) => {
+        const dataset = context.chart.data.datasets[0];
+        const total = dataset.data.reduce((acc, data) => acc + data, 0);
+        if (value === 0) return null;
+        const percentage = total > 0 ? `(${(value / total * 100).toFixed(1)}%)` : '';
+        return `${value.toLocaleString('pt-BR')}\n${percentage}`;
+    };
+
+    function createOrUpdateChart(canvasId, type, data, options) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        if (chartInstances[canvasId]) {
+            chartInstances[canvasId].destroy();
+        }
+        chartInstances[canvasId] = new Chart(ctx, { type, data, options });
+    }
+
+    function updateDashboard() { 
+        const selectedSchool = document.getElementById('school-filter').value;
+        const selectedLocation = document.getElementById('location-filter').value;
+        currentFilteredData = consolidatedData.filter(school => {
+            const schoolMatch = selectedSchool === 'all' || school.code === selectedSchool;
+            const locationMatch = selectedLocation === 'all' || school.location === selectedLocation;
+            return schoolMatch && locationMatch;
+        });
+        updateKPIs(currentFilteredData);
+        updateEnrollmentByLevelChart(currentFilteredData);
+        updateStudentsByLocationChart(currentFilteredData);
+        updateTransportUsageChart(currentFilteredData);
+        updateEnrollmentByTimeChart(currentFilteredData);
+        updateEnrollmentBySchoolChart(currentFilteredData);
+        updateSchoolDetailsTable(currentFilteredData);
+    }
+
+    function updateKPIs(data) {
+        const totalSchools = new Set(data.map(s => s.code)).size;
+        const infantilStudents = data.reduce((sum, school) => sum + school.infantil, 0);
+        const fundamentalStudents = data.reduce((sum, school) => sum + school.fundamental, 0);
+        const ejaStudents = data.reduce((sum, school) => sum + school.eja, 0);
+        const totalStudents = infantilStudents + fundamentalStudents + ejaStudents;
+        const urbanaStudents = data.filter(s => s.location === 'urbana').reduce((sum, s) => sum + (s.infantil + s.fundamental + s.eja), 0);
+        const ruralStudents = data.filter(s => s.location === 'rural').reduce((sum, s) => sum + (s.infantil + s.fundamental + s.eja), 0);
+        const totalTransport = data.reduce((sum, school) => sum + school.transporte, 0);
+        
+        const kpiContainer = document.getElementById('kpi-container');
+        kpiContainer.innerHTML = `
+            <!-- Total de Escolas -->
+            <div class="bg-white p-5 rounded-lg shadow-md text-center">
+                <div class="flex justify-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-main-header opacity-70"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/><path d="M16 14h.01"/></svg>
+                </div>
+                <h3 class="text-kpi-label text-sm font-medium uppercase">Total de Escolas</h3>
+                <p class="text-3xl font-bold text-kpi-value mt-1">${totalSchools.toLocaleString('pt-BR')}</p>
+            </div>
+            <!-- Total de Alunos -->
+            <div class="bg-white p-5 rounded-lg shadow-md text-center">
+                <div class="flex justify-center mb-2">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-main-header opacity-70"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <h3 class="text-kpi-label text-sm font-medium uppercase">Total de Alunos</h3>
+                <p class="text-3xl font-bold text-kpi-value mt-1">${totalStudents.toLocaleString('pt-BR')}</p>
+            </div>
+            <!-- Ed. Infantil -->
+            <div class="bg-white p-5 rounded-lg shadow-md text-center">
+                 <div class="flex justify-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-main-header opacity-70"><rect width="18" height="12" x="3" y="8" rx="1"/><path d="M10 8V5c0-.6-.4-1-1-1H6c-.6 0-1 .4-1 1v3"/><path d="M19 8V5c0-.6-.4-1-1-1h-3c-.6 0-1 .4-1 1v3"/><circle cx="8" cy="14" r="1"/><circle cx="16" cy="14" r="1"/></svg>
+                </div>
+                <h3 class="text-kpi-label text-sm font-medium uppercase">Ed. Infantil</h3>
+                <p class="text-3xl font-bold text-kpi-value mt-1">${infantilStudents.toLocaleString('pt-BR')}</p>
+            </div>
+            <!-- Ens. Fundamental -->
+            <div class="bg-white p-5 rounded-lg shadow-md text-center">
+                 <div class="flex justify-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-main-header opacity-70"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                </div>
+                <h3 class="text-kpi-label text-sm font-medium uppercase">Ens. Fundamental</h3>
+                <p class="text-3xl font-bold text-kpi-value mt-1">${fundamentalStudents.toLocaleString('pt-BR')}</p>
+            </div>
+            <!-- Alunos EJA -->
+            <div class="bg-white p-5 rounded-lg shadow-md text-center">
+                 <div class="flex justify-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-main-header opacity-70"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.084a1 1 0 0 0 0 1.838l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                </div>
+                <h3 class="text-kpi-label text-sm font-medium uppercase">Alunos EJA</h3>
+                <p class="text-3xl font-bold text-kpi-value mt-1">${ejaStudents.toLocaleString('pt-BR')}</p>
+            </div>
+            <!-- Alunos em Zona Urbana -->
+            <div class="bg-white p-5 rounded-lg shadow-md text-center">
+                 <div class="flex justify-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-main-header opacity-70"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h6m-6 4h6m-6 4h6" /></svg>
+                </div>
+                <h3 class="text-kpi-label text-sm font-medium uppercase">Alunos em Zona Urbana</h3>
+                <p class="text-3xl font-bold text-kpi-value mt-1">${urbanaStudents.toLocaleString('pt-BR')}</p>
+            </div>
+            <!-- Alunos em Zona Rural -->
+            <div class="bg-white p-5 rounded-lg shadow-md text-center">
+                 <div class="flex justify-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-main-header opacity-70"><path d="m12 14-4 4h8l-4-4z"/><path d="M12 2v12"/><path d="M16.8 6.2 12 2 7.2 6.2"/><path d="M15 18H9"/></svg>
+                </div>
+                <h3 class="text-kpi-label text-sm font-medium uppercase">Alunos em Zona Rural</h3>
+                <p class="text-3xl font-bold text-kpi-value mt-1">${ruralStudents.toLocaleString('pt-BR')}</p>
+            </div>
+            <!-- Utilizam Transporte -->
+            <div class="bg-white p-5 rounded-lg shadow-md text-center">
+                 <div class="flex justify-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-8 w-8 text-main-header opacity-70"><path d="M8 6v6h8V6Z"/><path d="M6 12h12"/><path d="M19 18H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2Z"/><circle cx="7.5" cy="18.5" r=".5" fill="currentColor"/><circle cx="16.5" cy="18.5" r=".5" fill="currentColor"/></svg>
+                </div>
+                <h3 class="text-kpi-label text-sm font-medium uppercase">Utilizam Transporte</h3>
+                <p class="text-3xl font-bold text-kpi-value mt-1">${totalTransport.toLocaleString('pt-BR')}</p>
+            </div>
+        `;
+    }
+
+    // --- CHART UPDATE FUNCTIONS ---
+    function updateEnrollmentByLevelChart(data) {
+        const creche = data.reduce((sum, school) => sum + school.creche, 0);
+        const preescola = data.reduce((sum, school) => sum + school.preescola, 0);
+        const anosIniciais = data.reduce((sum, school) => sum + school.anosIniciais, 0);
+        const anosFinais = data.reduce((sum, school) => sum + school.anosFinais, 0);
+        const eja = data.reduce((sum, school) => sum + school.eja, 0);
+        createOrUpdateChart('enrollmentByLevelChart', 'bar', {
+            labels: ['Creche', 'Pré-Escola', 'Anos Iniciais', 'Anos Finais', 'EJA'],
+            datasets: [{ 
+                label: 'Nº de Matrículas', data: [creche, preescola, anosIniciais, anosFinais, eja], 
+                backgroundColor: ['#3498DB', '#1ABC9C', '#9B59B6', '#F39C12', '#E74C3C'], 
+                borderColor: '#2c3e50', borderWidth: 1, borderRadius: 5 
+            }]
+        }, { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { formatter: datalabelsFormatter, anchor: 'end', align: 'top', color: '#34495e', font: { weight: 'bold', size: 10 }}}, scales: { y: { beginAtZero: true, ticks: { padding: 20 }}}});
+    }
+    function updateStudentsByLocationChart(data) {
+        const urbana = data.filter(s => s.location === 'urbana').reduce((sum, s) => sum + (s.infantil + s.fundamental + s.eja), 0);
+        const rural = data.filter(s => s.location === 'rural').reduce((sum, s) => sum + (s.infantil + s.fundamental + s.eja), 0);
+        createOrUpdateChart('studentsByLocationChart', 'bar', {
+            labels: ['Zona Urbana', 'Zona Rural'],
+            datasets: [{ label: 'Nº de Alunos', data: [urbana, rural], backgroundColor: ['#3498DB', '#1ABC9C'], borderColor: ['#2980b9', '#16a085'], borderWidth: 1, borderRadius: 5 }]
+        }, { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { formatter: datalabelsFormatter, anchor: 'end', align: 'top', color: '#34495e', font: { weight: 'bold', size: 10 }}}, scales: { y: { beginAtZero: true, ticks: { padding: 20 }}}});
+    }
+    function updateTransportUsageChart(data) {
+        const totalStudents = data.reduce((sum, s) => sum + (s.infantil + s.fundamental + s.eja), 0);
+        const totalTransport = data.reduce((sum, s) => sum + s.transporte, 0);
+        const noTransport = totalStudents - totalTransport;
+        createOrUpdateChart('transportUsageChart', 'bar', {
+            labels: ['Utilizam Transporte', 'Não Utilizam'],
+            datasets: [{ label: 'Nº de Alunos', data: [totalTransport, noTransport], backgroundColor: ['#1ABC9C', '#E74C3C'], borderColor: ['#16A085', '#c0392b'], borderWidth: 1, borderRadius: 5 }]
+        }, { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { formatter: datalabelsFormatter, anchor: 'end', align: 'top', color: '#34495e', font: { weight: 'bold', size: 10 }}}, scales: { y: { beginAtZero: true, ticks: { padding: 20 }}}});
+    }
+    function updateEnrollmentByTimeChart(data) {
+        const parcial = data.reduce((sum, school) => sum + school.parcial, 0);
+        const integral = data.reduce((sum, school) => sum + school.integral, 0);
+        createOrUpdateChart('enrollmentByTimeChart', 'bar', {
+            labels: ['Turno Parcial', 'Turno Integral'],
+            datasets: [{ label: 'Nº de Matrículas', data: [parcial, integral], backgroundColor: ['#F39C12', '#9B59B6'], borderColor: ['#d35400', '#8e44ad'], borderWidth: 1, borderRadius: 5 }]
+        }, { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { formatter: datalabelsFormatter, anchor: 'end', align: 'top', color: '#34495e', font: { weight: 'bold', size: 10 }}}, scales: { y: { beginAtZero: true, ticks: { padding: 20 }}}});
+    }
+    function updateEnrollmentBySchoolChart(data) {
+        const sortedData = [...data].sort((a, b) => (b.infantil + b.fundamental + b.eja) - (a.infantil + a.fundamental + a.eja));
+        const schoolNames = sortedData.map(s => s.name);
+        createOrUpdateChart('enrollmentBySchoolChart', 'bar', {
+            labels: schoolNames,
+            datasets: [ { label: 'Ed. Infantil', data: sortedData.map(s => s.infantil), backgroundColor: '#3498DB' }, { label: 'Ens. Fundamental', data: sortedData.map(s => s.fundamental), backgroundColor: '#1ABC9C' }, { label: 'EJA', data: sortedData.map(s => s.eja), backgroundColor: '#F39C12' } ]
+        }, { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top' }, tooltip: { callbacks: { label: function(context) { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.parsed.x !== null) { label += context.parsed.x.toLocaleString('pt-BR'); } return label; }}}, datalabels: { formatter: (value, context) => { const total = context.chart.data.datasets.reduce((sum, dataset) => sum + (dataset.data[context.dataIndex] || 0), 0); if (context.datasetIndex === context.chart.data.datasets.length - 1) { return total > 0 ? total.toLocaleString('pt-BR') : null; } return null; }, anchor: 'end', align: 'right', padding: { right: 6 }, color: '#2c3e50', font: { weight: '600' }}}, scales: { x: { stacked: true, beginAtZero: true, ticks: { padding: 10 } }, y: { stacked: true, ticks: { autoSkip: false }}}});
+    }
+    function updateSchoolDetailsTable(data) {
+        const tableBody = document.getElementById('school-details-table');
+        tableBody.innerHTML = '';
+        if (data.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-sub-header">Nenhum dado encontrado para os filtros selecionados.</td></tr>`;
+            return;
+        }
+        data.forEach(school => {
+            const totalStudents = school.infantil + school.fundamental + school.eja;
+            const row = `<tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-main-header">${school.name}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-sub-header capitalize">${school.location}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-sub-header">${totalStudents.toLocaleString('pt-BR')}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-sub-header">${school.transporte.toLocaleString('pt-BR')}</td><td class="px-6 py-4 whitespace-nowrap text-sm text-sub-header">${school.eja.toLocaleString('pt-BR')}</td></tr>`;
+            tableBody.innerHTML += row;
+        });
+    }
+
+    // --- GEMINI API INTEGRATION ---
+    function getAnalysisPrompt(data) {
+        const totalSchools = new Set(data.map(s => s.code)).size;
+        const infantilStudents = data.reduce((sum, school) => sum + school.infantil, 0);
+        const fundamentalStudents = data.reduce((sum, school) => sum + school.fundamental, 0);
+        const ejaStudents = data.reduce((sum, school) => sum + school.eja, 0);
+        const totalStudents = infantilStudents + fundamentalStudents + ejaStudents;
+        const urbanaStudents = data.filter(s => s.location === 'urbana').reduce((sum, s) => sum + (s.infantil + s.fundamental + s.eja), 0);
+        const ruralStudents = data.filter(s => s.location === 'rural').reduce((sum, s) => sum + (s.infantil + s.fundamental + s.eja), 0);
+        const totalTransport = data.reduce((sum, school) => sum + school.transporte, 0);
+        
+        let prompt = `Aqui está um resumo dos dados da rede de ensino para sua análise:\n\n`;
+        prompt += `- **Visão Geral:** ${totalSchools} escolas analisadas, com um total de ${totalStudents.toLocaleString('pt-BR')} alunos.\n`;
+        prompt += `- **Distribuição por Etapa:** Ed. Infantil: ${infantilStudents.toLocaleString('pt-BR')} alunos; Ens. Fundamental: ${fundamentalStudents.toLocaleString('pt-BR')} alunos; EJA: ${ejaStudents.toLocaleString('pt-BR')} alunos.\n`;
+        prompt += `- **Localização das Escolas:** O total de alunos está distribuído em escolas localizadas na Zona Urbana (${urbanaStudents.toLocaleString('pt-BR')}) e na Zona Rural (${ruralStudents.toLocaleString('pt-BR')}).\n`;
+        prompt += `- **Transporte Escolar:** ${totalTransport.toLocaleString('pt-BR')} alunos utilizam o serviço (representando ${totalStudents > 0 ? ((totalTransport / totalStudents) * 100).toFixed(1) : 0}% do total).\n`;
+        
+        const sortedData = [...data].sort((a, b) => (b.infantil + b.fundamental + b.eja) - (a.infantil + a.fundamental + a.eja));
+        if (sortedData.length > 0 && sortedData.length < consolidatedData.length) {
+             prompt += `- **Filtro Ativo:** A análise é focada em ${sortedData.length} escola(s) específica(s), notavelmente ${sortedData[0].name}.\n`;
+        }
+        prompt += `\nCom base nesses dados, por favor, gere a análise estratégica.`;
+        return prompt;
+    }
+
+    function formatAIResponse(text) {
+        const blocks = text.split('\n\n');
+        let html = '';
+        blocks.forEach(block => {
+            const trimmedBlock = block.trim();
+            if (trimmedBlock.startsWith('**') && trimmedBlock.endsWith('**')) {
+                const title = trimmedBlock.substring(2, trimmedBlock.length - 2);
+                if(title.match(/^\d+\./)) {
+                    html += `<h3>${title}</h3>`;
+                } else {
+                     html += `<h4>${title}</h4>`;
+                }
+            } else if (trimmedBlock.startsWith('* ')) {
+                const items = trimmedBlock.split('\n').map(item => `<li>${item.substring(2)}</li>`).join('');
+                html += `<ul>${items}</ul>`;
+            } else if (trimmedBlock === '---') {
+                html += '<hr class="my-4">';
+            }
+            else {
+                let processedBlock = trimmedBlock
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                html += `<p>${processedBlock.replace(/\n/g, '<br>')}</p>`;
+            }
+        });
+        
+        html = html.replace(/<hr class="my-4">(\s*<p><strong>Francklin Rafael<\/strong><br><em>Tecnico responsável pelo Censo Escolar Municipal<\/em><\/p>)/, 
+             `<div class="mt-8 pt-4 border-t-2 border-gray-200 text-right">
+                <p class="font-bold text-main-header">Francklin Rafael</p>
+                <p class="text-sm text-sub-header">Tecnico responsável pelo Censo Escolar Municipal</p>
+             </div>`
+        );
+        return html;
+    }
+
+    async function generateAIAnalysis() {
+        if (currentFilteredData.length === 0) {
+            alert("Não há dados para analisar. Por favor, carregue os arquivos primeiro.");
+            return;
+        }
+
+        aiModal.classList.remove('hidden');
+        aiModalContent.innerHTML = '';
+        aiModalLoader.style.display = 'block';
+
+        // --- Generate Charts for Modal ---
+        const infantilStudents = currentFilteredData.reduce((sum, school) => sum + school.infantil, 0);
+        const fundamentalStudents = currentFilteredData.reduce((sum, school) => sum + school.fundamental, 0);
+        const ejaStudents = currentFilteredData.reduce((sum, school) => sum + school.eja, 0);
+        createOrUpdateChart('ai-stage-chart', 'pie', {
+            labels: ['Ed. Infantil', 'Ens. Fundamental', 'EJA'],
+            datasets: [{ data: [infantilStudents, fundamentalStudents, ejaStudents], backgroundColor: ['#3498DB', '#1ABC9C', '#F39C12'] }]
+        }, { responsive: true, plugins: { legend: { position: 'top' }, datalabels: { formatter: (v, ctx) => { const total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); const perc = total > 0 ? (v / total * 100).toFixed(1) + '%' : '0%'; return perc; }, color: '#fff' }}});
+        
+        const urbanaStudents = currentFilteredData.filter(s => s.location === 'urbana').reduce((sum, s) => sum + (s.infantil + s.fundamental + s.eja), 0);
+        const ruralStudents = currentFilteredData.filter(s => s.location === 'rural').reduce((sum, s) => sum + (s.infantil + s.fundamental + s.eja), 0);
+        createOrUpdateChart('ai-location-chart', 'bar', {
+            labels: ['Zona Urbana', 'Zona Rural'],
+            datasets: [{ label: 'Nº de Alunos', data: [urbanaStudents, ruralStudents], backgroundColor: ['#3498DB', '#1ABC9C'] }]
+        }, { responsive: true, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: (v) => v.toLocaleString('pt-BR'), color: '#34495e'}}});
+        
+        // --- Call Gemini API ---
+        const systemPrompt = "Você é um consultor sênior em gestão educacional, elaborando um relatório técnico para a Secretaria de Educação. Sua análise deve ser objetiva, baseada estritamente nos dados, e acionável. Não faça suposições (ex: a localização da escola não define a origem de todos os alunos). Estruture sua resposta RIGOROSAMENTE da seguinte forma:\n\n**1. DIAGNÓSTICO DOS DADOS**\n[Um parágrafo objetivo resumindo o cenário que os dados apresentam (total de alunos, escolas, distribuição geral).]\n\n**2. PONTOS DE ANÁLISE**\n* [Liste 3 a 5 observações importantes e diretas extraídas dos números. Ex: 'A modalidade EJA representa apenas X% do total de matrículas, indicando uma possível baixa procura ou oferta.']\n\n**3. RECOMENDAÇÕES ESTRATÉGICAS**\n* [Com base nos pontos de análise, liste de 3 a 5 recomendações claras e práticas. Ex: 'Desenvolver campanha de incentivo para matrículas no EJA, focada nas áreas com maior densidade populacional adulta.']\n\nAo final do relatório, adicione a seguinte assinatura:\n\n---\n**Francklin Rafael**\n*Tecnico responsável pelo Censo Escolar Municipal*";
+        const userQuery = getAnalysisPrompt(currentFilteredData);
+        const apiKey = ""; // API key will be injected by the environment
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            const analysisText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (analysisText) {
+                aiModalContent.innerHTML = formatAIResponse(analysisText);
+            } else {
+                aiModalContent.textContent = "Não foi possível gerar a análise. A resposta da IA estava vazia.";
+            }
+
+        } catch (error) {
+            console.error("Erro na chamada da API Gemini:", error);
+            aiModalContent.textContent = "Ocorreu um erro ao tentar gerar a análise. Verifique o console para mais detalhes.";
+        } finally {
+            aiModalLoader.style.display = 'none';
+        }
+    }
+});
+</script>
+</body>
+</html>
+

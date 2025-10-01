@@ -12,6 +12,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <!-- SheetJS (xlsx) para ler e criar arquivos Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- html2pdf.js para gerar PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- Fontes do Google -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -245,9 +247,14 @@
         <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center p-4 border-b">
                 <h2 class="text-xl font-bold text-main-header">✨ Análise Estratégica (IA)</h2>
-                <button id="close-ai-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+                <div>
+                    <button id="download-pdf-btn" class="text-gray-500 hover:text-gray-800 mr-4" title="Baixar como PDF">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    </button>
+                    <button id="close-ai-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+                </div>
             </div>
-            <div class="p-6 overflow-y-auto">
+            <div id="ai-report-area" class="p-6 overflow-y-auto">
                 <div id="ai-charts-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
                         <h3 class="text-center font-semibold text-main-header mb-2">Distribuição por Etapa</h3>
@@ -301,6 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeSettingsModalBtn = document.getElementById('close-settings-modal-btn');
     const saveApiKeyBtn = document.getElementById('save-api-key-btn');
     const apiKeyInput = document.getElementById('api-key-input');
+    const downloadPdfBtn = document.getElementById('download-pdf-btn');
     
     // Event Listeners
     gestaoInput.addEventListener('change', handleFileSelect);
@@ -312,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
     closeAiModalBtn.addEventListener('click', () => aiModal.classList.add('hidden'));
     settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
     closeSettingsModalBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+    downloadPdfBtn.addEventListener('click', downloadReportAsPDF);
     logoUploadInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (file && file.type.startsWith('image/')) {
@@ -792,6 +801,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return html;
     }
 
+    function downloadReportAsPDF() {
+        const reportArea = document.getElementById('ai-report-area');
+        const options = {
+            margin:       0.5,
+            filename:     'Relatorio_Analise_IA.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, logging: true },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+        
+        html2pdf().from(reportArea).set(options).save();
+    }
+
     async function generateAIAnalysis() {
         const userApiKey = localStorage.getItem('geminiApiKey');
         if (!userApiKey) {
@@ -826,7 +848,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { responsive: true, plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: (v) => v.toLocaleString('pt-BR'), color: '#34495e'}}});
         
         // --- Call Gemini API ---
-        const systemPrompt = "Você é um consultor sênior em gestão educacional, elaborando um relatório técnico para a Secretaria de Educação. Sua análise deve ser objetiva, baseada estritamente nos dados, e acionável. Não faça suposições (ex: a localização da escola não define a origem de todos os alunos). Estruture sua resposta RIGOROSAMENTE da seguinte forma:\n\n**1. DIAGNÓSTICO DOS DADOS**\n[Um parágrafo objetivo resumindo o cenário que os dados apresentam (total de alunos, escolas, distribuição geral).]\n\n**2. PONTOS DE ANÁLISE**\n* [Liste 3 a 5 observações importantes e diretas extraídas dos números. Ex: 'A modalidade EJA representa apenas X% do total de matrículas, indicando uma possível baixa procura ou oferta.']\n\n**3. RECOMENDAÇÕES ESTRATÉGICAS**\n* [Com base nos pontos de análise, liste de 3 a 5 recomendações claras e práticas. Ex: 'Desenvolver campanha de incentivo para matrículas no EJA, focada nas áreas com maior densidade populacional adulta.']\n\nAo final do relatório, adicione a seguinte assinatura:\n\n---\n**Francklin Rafael**\n*Tecnico responsável pelo Censo Escolar Municipal*";
+        const systemPrompt = "Você é um consultor sênior em gestão educacional, elaborando um relatório técnico para a Secretaria de Educação. Sua análise deve ser objetiva, baseada estritamente nos dados, e acionável. Não faça suposições (ex: a localização da escola não define a origem de todos os alunos). Estruture sua resposta RIGOROSAMENTE da seguinte forma:\n\n**1. DIAGNÓSTICO DOS DADOS**\n[Um parágrafo objetivo resumindo o cenário que os dados apresentam (total de alunos, escolas, distribuição geral). Use **negrito** (com asteriscos duplos) para destacar os números mais importantes dentro do texto.]\n\n**2. PONTOS DE ANÁLISE**\n* [Liste 3 a 5 observações importantes. Use **negrito** para enfatizar os pontos-chave em cada item da lista.]\n\n**3. RECOMENDAÇÕES ESTRATÉGICAS**\n* [Com base nos pontos de análise, liste de 3 a 5 recomendações claras e práticas. Use **negrito** para destacar a ação principal em cada recomendação.]\n\nAo final do relatório, adicione a seguinte assinatura:\n\n---\n**Francklin Rafael**\n*Tecnico responsável pelo Censo Escolar Municipal*";
         const userQuery = getAnalysisPrompt(currentFilteredData);
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${userApiKey}`;
 

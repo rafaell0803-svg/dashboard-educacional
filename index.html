@@ -101,7 +101,11 @@
 <body class="p-4 md:p-6 lg:p-8">
     <div class="max-w-7xl mx-auto">
         <!-- Novo Cabeçalho Centralizado -->
-        <header class="text-center mb-8 py-6 bg-white rounded-lg shadow-md">
+        <header class="text-center mb-8 py-6 bg-white rounded-lg shadow-md relative">
+            <!-- Botão de Configurações -->
+            <button id="settings-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
             <!-- Uploader do Brasão -->
             <div class="mb-4">
                 <input type="file" id="logo-upload" class="hidden" accept="image/*">
@@ -217,6 +221,25 @@
         </div>
     </div>
     
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h2 class="text-xl font-bold text-main-header">Configurações</h2>
+                <button id="close-settings-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div class="p-6">
+                <label for="api-key-input" class="block text-sm font-medium text-main-header mb-2">Chave de API do Gemini</label>
+                <input type="password" id="api-key-input" class="w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="Cole sua chave de API aqui">
+                <p class="text-xs text-sub-header mt-2">Sua chave é salva apenas no seu navegador. Nós não a armazenamos.</p>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-sm text-blue-600 hover:underline mt-1 block">Como obter uma chave de API gratuita?</a>
+                <div class="mt-4 flex justify-end">
+                    <button id="save-api-key-btn" class="btn btn-primary">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- AI Analysis Modal -->
     <div id="ai-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
@@ -264,14 +287,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingText = document.getElementById('loading-text');
     const aiAnalysisBtn = document.getElementById('generate-ai-analysis-btn');
-    const aiModal = document.getElementById('ai-modal');
-    const closeAiModalBtn = document.getElementById('close-ai-modal-btn');
-    const aiModalContent = document.getElementById('ai-modal-content');
-    const aiModalLoader = document.getElementById('ai-modal-loader');
     const logoUploadInput = document.getElementById('logo-upload');
     const logoImg = document.getElementById('logo-img');
     const logoText = document.getElementById('logo-text');
 
+    // Modals
+    const aiModal = document.getElementById('ai-modal');
+    const closeAiModalBtn = document.getElementById('close-ai-modal-btn');
+    const aiModalContent = document.getElementById('ai-modal-content');
+    const aiModalLoader = document.getElementById('ai-modal-loader');
+    const settingsModal = document.getElementById('settings-modal');
+    const settingsBtn = document.getElementById('settings-btn');
+    const closeSettingsModalBtn = document.getElementById('close-settings-modal-btn');
+    const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+    const apiKeyInput = document.getElementById('api-key-input');
+    
     // Event Listeners
     gestaoInput.addEventListener('change', handleFileSelect);
     transporteInput.addEventListener('change', handleFileSelect);
@@ -280,6 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
     clearBtn.addEventListener('click', clearDashboard);
     aiAnalysisBtn.addEventListener('click', generateAIAnalysis);
     closeAiModalBtn.addEventListener('click', () => aiModal.classList.add('hidden'));
+    settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+    closeSettingsModalBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
     logoUploadInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (file && file.type.startsWith('image/')) {
@@ -289,6 +321,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 logoText.classList.add('hidden');
             };
             reader.readAsDataURL(file);
+        }
+    });
+
+    // Load API key from local storage on startup
+    apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
+    saveApiKeyBtn.addEventListener('click', () => {
+        const apiKey = apiKeyInput.value.trim();
+        if(apiKey){
+            localStorage.setItem('geminiApiKey', apiKey);
+            settingsModal.classList.add('hidden');
+            alert('Chave de API salva com sucesso!');
+        } else {
+            alert('Por favor, insira uma chave de API válida.');
         }
     });
 
@@ -391,33 +436,19 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const parseEJAFile = (rows) => {
-        // Robust EJA parsing based on headers
         const headers = rows[1].map(h => String(h || '').trim());
-        
         const codeHeader = 'Código e Nome da escola';
         const locationHeader = 'Localização/Zona da escola';
         const eja1Header = 'Anos iniciais (1º segmento)';
         const eja2Header = 'Anos finais (2º segmento)';
-
         const codeColIndex = headers.indexOf(codeHeader);
         const locationColIndex = headers.indexOf(locationHeader);
         const eja1ColIndex = headers.indexOf(eja1Header);
         const eja2ColIndex = headers.indexOf(eja2Header);
 
         if ([codeColIndex, eja1ColIndex, eja2ColIndex].includes(-1)) {
-            console.error('Cabeçalhos do arquivo EJA não encontrados. Usando método antigo.');
-            // Fallback to old method if headers are not found
-            rows.slice(2).forEach(cols => {
-                let codeColIndex = -1;
-                for (let i = 0; i < cols.length; i++) { if (String(cols[i]).match(/^\d+[-]/)) { codeColIndex = i; break; } }
-                if (codeColIndex === -1 || String(cols[codeColIndex]).toLowerCase().includes('total')) return;
-                const code = extractSchoolCode(cols[codeColIndex]);
-                if (!code) return;
-                const ejaValue = safeParseInt(cols[codeColIndex + 3]) + safeParseInt(cols[codeColIndex + 4]);
-                let school = consolidatedData.find(s => s.code === code);
-                if(school) school.eja += ejaValue;
-            });
-            return;
+             console.error('Cabeçalhos do arquivo EJA não encontrados.');
+             return; // Stop processing if essential headers are missing
         }
 
         rows.slice(2).forEach(cols => {
@@ -762,6 +793,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function generateAIAnalysis() {
+        const userApiKey = localStorage.getItem('geminiApiKey');
+        if (!userApiKey) {
+            alert('Por favor, insira sua chave de API do Gemini nas configurações para gerar a análise.');
+            settingsModal.classList.remove('hidden');
+            return;
+        }
+
         if (currentFilteredData.length === 0) {
             alert("Não há dados para analisar. Por favor, carregue os arquivos primeiro.");
             return;
@@ -790,8 +828,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Call Gemini API ---
         const systemPrompt = "Você é um consultor sênior em gestão educacional, elaborando um relatório técnico para a Secretaria de Educação. Sua análise deve ser objetiva, baseada estritamente nos dados, e acionável. Não faça suposições (ex: a localização da escola não define a origem de todos os alunos). Estruture sua resposta RIGOROSAMENTE da seguinte forma:\n\n**1. DIAGNÓSTICO DOS DADOS**\n[Um parágrafo objetivo resumindo o cenário que os dados apresentam (total de alunos, escolas, distribuição geral).]\n\n**2. PONTOS DE ANÁLISE**\n* [Liste 3 a 5 observações importantes e diretas extraídas dos números. Ex: 'A modalidade EJA representa apenas X% do total de matrículas, indicando uma possível baixa procura ou oferta.']\n\n**3. RECOMENDAÇÕES ESTRATÉGICAS**\n* [Com base nos pontos de análise, liste de 3 a 5 recomendações claras e práticas. Ex: 'Desenvolver campanha de incentivo para matrículas no EJA, focada nas áreas com maior densidade populacional adulta.']\n\nAo final do relatório, adicione a seguinte assinatura:\n\n---\n**Francklin Rafael**\n*Tecnico responsável pelo Censo Escolar Municipal*";
         const userQuery = getAnalysisPrompt(currentFilteredData);
-        const apiKey = ""; // API key will be injected by the environment
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${userApiKey}`;
 
         try {
             const response = await fetch(apiUrl, {
@@ -804,7 +841,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                throw new Error(`API Error: ${response.statusText}`);
+                const errorBody = await response.json();
+                console.error("API Error Body:", errorBody);
+                throw new Error(`Erro na API: ${errorBody.error?.message || response.statusText}`);
             }
 
             const result = await response.json();
@@ -818,7 +857,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Erro na chamada da API Gemini:", error);
-            aiModalContent.textContent = "Ocorreu um erro ao tentar gerar a análise. Verifique o console para mais detalhes.";
+            aiModalContent.innerHTML = `<p class="text-red-600 font-bold">Ocorreu um erro ao gerar a análise.</p><p class="text-sm text-gray-600">${error.message}. Verifique se sua chave de API é válida e tente novamente.</p>`;
         } finally {
             aiModalLoader.style.display = 'none';
         }
@@ -827,5 +866,4 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
-
 

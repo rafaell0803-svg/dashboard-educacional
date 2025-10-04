@@ -163,7 +163,7 @@
     import { getFirestore, collection, doc, getDoc, setDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // =================================================================================
-    // ATENÇÃO: Substitua pelas suas credenciais reais do Firebase
+    // ATENÇÃO: Cole aqui as suas credenciais reais do Firebase
     // =================================================================================
     const firebaseConfig = {
       apiKey: "COLE_SUA_API_KEY_AQUI",
@@ -174,12 +174,112 @@
       appId: "COLE_SEU_APP_ID_AQUI"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    try {
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        console.log("Firebase inicializado com sucesso.");
 
-    // O restante do código JavaScript será colocado aqui...
-    // ...
+        // ... O resto do seu código de inicialização e lógica do app vai aqui ...
+        // Simulação inicial para manter a estrutura
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginView = document.getElementById('login-view');
+            const appView = document.getElementById('app-view');
+
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    handleUserLoggedIn(user);
+                } else {
+                    showView('login');
+                }
+            });
+
+            document.getElementById('login-btn').addEventListener('click', () => {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const loginError = document.getElementById('login-error');
+                loginError.classList.add('hidden');
+
+                signInWithEmailAndPassword(auth, email, password)
+                    .catch(error => {
+                        loginError.textContent = `Erro: ${error.code}`;
+                        loginError.classList.remove('hidden');
+                        console.error("Erro de login detalhado:", error);
+                    });
+            });
+            
+            document.getElementById('logout-btn').addEventListener('click', () => {
+                signOut(auth);
+            });
+
+            function showView(viewId) {
+                document.getElementById('login-view').classList.add('hidden');
+                document.getElementById('app-view').classList.add('hidden');
+                document.getElementById('secretaria-view').classList.add('hidden');
+                document.getElementById('escola-view').classList.add('hidden');
+                document.getElementById('school-selection-view').classList.add('hidden');
+                
+                if (viewId === 'login') document.getElementById('login-view').classList.remove('hidden');
+                else document.getElementById('app-view').classList.remove('hidden');
+
+                if (viewId === 'secretaria') document.getElementById('secretaria-view').classList.remove('hidden');
+                if (viewId === 'escola') document.getElementById('escola-view').classList.remove('hidden');
+                if (viewId === 'school-selection') document.getElementById('school-selection-view').classList.remove('hidden');
+            }
+
+            async function handleUserLoggedIn(user) {
+                console.log("Usuário logado:", user.uid);
+                const userDocRef = doc(db, "users", user.uid);
+                
+                try {
+                    const userDoc = await getDoc(userDocRef);
+
+                    if (!userDoc.exists()) {
+                        console.error("Documento de perfil do usuário não encontrado no Firestore para UID:", user.uid);
+                        alert("Usuário sem perfil de acesso definido. Contacte o administrador.");
+                        signOut(auth);
+                        return;
+                    }
+
+                    const userData = userDoc.data();
+                    console.log("Dados do perfil do usuário:", userData);
+                    
+                    userData.email = user.email;
+                    sessionStorage.setItem('user', JSON.stringify(userData));
+
+                    document.getElementById('user-email').textContent = user.email;
+
+                    if (userData.role === 'secretaria') {
+                        document.getElementById('app-title').textContent = 'Painel da Secretaria';
+                        document.getElementById('app-subtitle').textContent = 'Visão consolidada da rede de ensino.';
+                        showView('secretaria');
+                    } else if (userData.role === 'escola') {
+                        if (userData.managedSchools && userData.managedSchools.length > 1) {
+                            showView('school-selection');
+                        } else if (userData.managedSchools && userData.managedSchools.length === 1) {
+                            document.getElementById('app-title').textContent = 'Painel da Escola';
+                            document.getElementById('app-subtitle').textContent = 'Visão detalhada da unidade.';
+                            showView('escola');
+                        } else {
+                             alert("Este perfil de diretor não tem escolas associadas.");
+                             signOut(auth);
+                        }
+                    } else {
+                         alert("Perfil de usuário desconhecido.");
+                         signOut(auth);
+                    }
+                } catch (error) {
+                    console.error("Erro ao buscar perfil do usuário no Firestore:", error);
+                    alert("Ocorreu um erro ao carregar seu perfil. Tente novamente.");
+                    signOut(auth);
+                }
+            }
+        });
+
+    } catch (e) {
+        console.error("Erro Crítico - Verifique suas credenciais do Firebase:", e.message);
+        alert("Erro de configuração do Firebase. Verifique o console para mais detalhes.");
+    }
 </script>
 
 </body>

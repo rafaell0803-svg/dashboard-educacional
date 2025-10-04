@@ -57,6 +57,10 @@
                 <h1 class="text-3xl font-bold text-main-header">Educa-Gestor</h1>
                 <p class="text-sub-header">Plataforma de Gestão Educacional</p>
             </div>
+            <div id="firebase-config-error" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <strong class="font-bold">Erro de Configuração!</strong>
+                <span class="block sm:inline">As credenciais do Firebase não foram configuradas. Por favor, edite o arquivo HTML e cole suas credenciais no objeto `firebaseConfig`.</span>
+            </div>
             <div class="space-y-6">
                 <div>
                     <label for="email" class="block text-sm font-medium text-main-header">Email</label>
@@ -82,105 +86,192 @@
     
     <!-- Tela Principal da Aplicação (Oculta por padrão) -->
     <div id="app-view" class="hidden">
-        <div class="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 w-full">
-            <!-- Cabeçalho Logado -->
-            <header class="flex justify-between items-center text-center mb-8 py-4 px-6 bg-white rounded-lg shadow-md relative">
-                <div>
-                     <h1 id="app-title" class="text-xl font-bold text-main-header text-left"></h1>
-                     <p id="app-subtitle" class="text-sm text-sub-header text-left"></p>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <button id="switch-school-btn" class="btn btn-secondary hidden flex items-center space-x-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-                        <span>Trocar de Escola</span>
-                    </button>
-                    <span id="user-email" class="text-sm text-sub-header hidden md:block"></span>
-                    <button id="logout-btn" class="btn btn-danger">Sair</button>
-                </div>
-            </header>
-
-            <!-- Tela de Seleção de Escola -->
-            <div id="school-selection-view" class="hidden">
-                 <h2 class="text-2xl font-bold text-main-header mb-6 text-center">Selecione a Escola que Deseja Gerenciar</h2>
-                <div id="school-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Cards de escolas serão inseridos aqui dinamicamente -->
-                </div>
-            </div>
-
-            <!-- Módulo Secretaria -->
-            <div id="secretaria-view" class="hidden">
-                <!-- Seção de Upload de Arquivos -->
-                <div id="upload-section" class="bg-white p-6 rounded-lg shadow-md mb-6">
-                    <h2 class="text-xl font-semibold text-main-header mb-1">Carregar Dados da Rede</h2>
-                    <p class="text-sm text-sub-header mb-4">Selecione os 3 relatórios consolidados (Gestão, Transporte e EJA).</p>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div>
-                            <label class="block text-sm font-medium text-main-header mb-1">Relatório de Gestão</label>
-                            <input type="file" id="gestao-file" accept=".csv, .xlsx" class="hidden" data-target="gestao-feedback">
-                            <label for="gestao-file" class="file-upload-btn w-full text-center">Escolher arquivo...</label>
-                            <p id="gestao-feedback" class="text-xs text-sub-header mt-1 truncate">Nenhum arquivo selecionado.</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-main-header mb-1">Relatório de Transporte</label>
-                            <input type="file" id="transporte-file" accept=".csv, .xlsx" class="hidden" data-target="transporte-feedback">
-                            <label for="transporte-file" class="file-upload-btn w-full text-center">Escolher arquivo...</label>
-                            <p id="transporte-feedback" class="text-xs text-sub-header mt-1 truncate">Nenhum arquivo selecionado.</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-main-header mb-1">Relatório de EJA</label>
-                            <input type="file" id="eja-file" accept=".csv, .xlsx" class="hidden" data-target="eja-feedback">
-                            <label for="eja-file" class="file-upload-btn w-full text-center">Escolher arquivo...</label>
-                            <p id="eja-feedback" class="text-xs text-sub-header mt-1 truncate">Nenhum arquivo selecionado.</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center">
-                        <button id="update-dashboard-btn" disabled class="btn btn-primary">Processar e Salvar Dados</button>
-                    </div>
-                </div>
-
-                <div id="dashboard-wrapper-secretaria">
-                    <!-- Dashboard content will be dynamically inserted here -->
-                </div>
-            </div>
-
-            <!-- Módulo Escola -->
-            <div id="escola-view" class="hidden">
-                 <div id="dashboard-wrapper-escola">
-                    <!-- School dashboard content will be dynamically inserted here -->
-                 </div>
-            </div>
-        </div>
+       <!-- O conteúdo da aplicação (dashboards, etc.) será inserido aqui dinamicamente -->
     </div>
     
-    <!-- Modals -->
-    <!-- ... (Estrutura dos modals de AI e Settings permanece a mesma) ... -->
-
+    <!-- Loading Overlay -->
     <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-75 flex-col items-center justify-center z-50 hidden"><div class="text-center"><svg class="animate-spin h-10 w-10 text-main-header mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p id="loading-text" class="mt-4 text-sub-header text-lg">Aguarde...</p></div></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, collection, doc, getDoc, setDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // =================================================================================
     // ATENÇÃO: Substitua pelas suas credenciais reais do Firebase
     // =================================================================================
     const firebaseConfig = {
-  apiKey: "AIzaSyAN4-1BscenHI502WaH7ihUGK27dcnOeM8",
-  authDomain: "educa-gestor-f79ba.firebaseapp.com",
-  projectId: "educa-gestor-f79ba",
-  storageBucket: "educa-gestor-f79ba.firebasestorage.app",
-  messagingSenderId: "1021174287337",
-  appId: "1:1021174287337:web:dab808546ab0d41b5e9978",
-  measurementId: "G-1WFSXQ4VRZ"
-};
+      apiKey: "COLE_SUA_API_KEY_AQUI",
+      authDomain: "COLE_SEU_AUTH_DOMAIN_AQUI",
+      projectId: "COLE_SEU_PROJECT_ID_AQUI",
+      storageBucket: "COLE_SEU_STORAGE_BUCKET_AQUI",
+      messagingSenderId: "COLE_SEU_MESSAGING_SENDER_ID_AQUI",
+      appId: "COLE_SEU_APP_ID_AQUI"
+    };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    // --- Início da Lógica Principal ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const loginView = document.getElementById('login-view');
+        const appView = document.getElementById('app-view');
+        const loginError = document.getElementById('login-error');
+        const firebaseConfigError = document.getElementById('firebase-config-error');
+        const loginBtn = document.getElementById('login-btn');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
 
-    // O restante do código JavaScript será colocado aqui...
-    // ...
+        // Validação da Configuração do Firebase
+        if (firebaseConfig.apiKey === "COLE_SUA_API_KEY_AQUI" || !firebaseConfig.apiKey) {
+            firebaseConfigError.classList.remove('hidden');
+            loginBtn.disabled = true;
+            console.error("As credenciais do Firebase não foram preenchidas.");
+            return; // Interrompe a execução
+        }
+
+        try {
+            // Inicialização do Firebase
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            console.log("Firebase inicializado com sucesso.");
+
+            // Gerenciamento de Estado de Autenticação
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    handleUserLoggedIn(user, db);
+                } else {
+                    showView('login');
+                }
+            });
+
+            // Lógica de Login
+            loginBtn.addEventListener('click', () => {
+                const email = emailInput.value;
+                const password = passwordInput.value;
+                loginError.classList.add('hidden');
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Entrando...';
+
+                signInWithEmailAndPassword(auth, email, password)
+                    .catch(error => {
+                        let friendlyMessage = 'Email ou senha inválidos.';
+                        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                            friendlyMessage = 'Credenciais inválidas. Verifique seu email e senha.';
+                        } else if (error.code === 'auth/network-request-failed') {
+                            friendlyMessage = 'Erro de rede. Verifique sua conexão com a internet.';
+                        } else {
+                            friendlyMessage = `Erro: ${error.code}`;
+                        }
+                        loginError.textContent = friendlyMessage;
+                        loginError.classList.remove('hidden');
+                        console.error("Erro de login detalhado:", error);
+                    })
+                    .finally(() => {
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = 'Entrar';
+                    });
+            });
+            
+            // Lógica de Logout (Precisa ser delegada, pois o botão não existe no DOM inicial)
+            document.body.addEventListener('click', (event) => {
+                if (event.target && event.target.id === 'logout-btn') {
+                    signOut(auth);
+                }
+            });
+
+        } catch (e) {
+            console.error("Erro Crítico - Verifique suas credenciais do Firebase:", e.message);
+            loginError.textContent = "Erro de configuração do Firebase. Verifique as credenciais e o console.";
+            loginError.classList.remove('hidden');
+        }
+    });
+
+    function showView(viewId, content = '') {
+        const loginView = document.getElementById('login-view');
+        const appView = document.getElementById('app-view');
+        
+        loginView.classList.add('hidden');
+        appView.classList.add('hidden');
+
+        if (viewId === 'login') {
+            loginView.classList.remove('hidden');
+        } else {
+            appView.innerHTML = content; // Injeta o conteúdo do dashboard
+            appView.classList.remove('hidden');
+        }
+    }
+
+    async function handleUserLoggedIn(user, db) {
+        console.log("Usuário logado:", user.uid);
+        const userDocRef = doc(db, "users", user.uid);
+        
+        try {
+            const userDoc = await getDoc(userDocRef);
+
+            if (!userDoc.exists()) {
+                console.error("Documento de perfil do usuário não encontrado no Firestore para UID:", user.uid);
+                alert("Usuário sem perfil de acesso definido. Contacte o administrador.");
+                signOut(getAuth());
+                return;
+            }
+
+            const userData = userDoc.data();
+            console.log("Dados do perfil do usuário:", userData);
+            
+            // Renderiza o dashboard apropriado
+            if (userData.role === 'secretaria') {
+                showView('app', getSecretariaHTML(user.email));
+            } else if (userData.role === 'escola') {
+                showView('app', getEscolaHTML(user.email, userData));
+            }
+            // Adicionar lógica de seleção de escola aqui se necessário
+            
+        } catch (error) {
+            console.error("Erro ao buscar perfil do usuário no Firestore:", error);
+            alert("Ocorreu um erro ao carregar seu perfil. Tente novamente.");
+            signOut(getAuth());
+        }
+    }
+
+    function getSecretariaHTML(email) {
+        return `
+        <div class="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 w-full">
+            <header class="flex justify-between items-center text-center mb-8 py-4 px-6 bg-white rounded-lg shadow-md relative">
+                 <div>
+                     <h1 class="text-xl font-bold text-main-header text-left">Painel da Secretaria</h1>
+                     <p class="text-sm text-sub-header text-left">Visão consolidada da rede de ensino.</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-sub-header hidden md:block">${email}</span>
+                    <button id="logout-btn" class="btn btn-danger">Sair</button>
+                </div>
+            </header>
+            <div id="secretaria-view">
+                <!-- Conteúdo do dashboard da secretaria aqui -->
+                <p>Bem-vindo, Secretaria!</p>
+            </div>
+        </div>`;
+    }
+
+    function getEscolaHTML(email, userData) {
+         return `
+        <div class="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 w-full">
+            <header class="flex justify-between items-center text-center mb-8 py-4 px-6 bg-white rounded-lg shadow-md relative">
+                 <div>
+                     <h1 class="text-xl font-bold text-main-header text-left">Painel do Diretor</h1>
+                     <p class="text-sm text-sub-header text-left">Escola(s): ${userData.managedSchools.join(', ')}</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-sub-header hidden md:block">${email}</span>
+                    <button id="logout-btn" class="btn btn-danger">Sair</button>
+                </div>
+            </header>
+            <div id="escola-view">
+                <!-- Conteúdo do dashboard da escola aqui -->
+                <p>Bem-vindo, Diretor!</p>
+            </div>
+        </div>`;
+    }
+
 </script>
 
 </body>
